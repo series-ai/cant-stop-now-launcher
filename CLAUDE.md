@@ -49,7 +49,10 @@ Systems (keep, tune, or delete whole):
   submits at fling end fire-and-forget (server keeps each player's best;
   the returned rank shows on the results screen); the LEADERBOARD screen renders
   top 10 with medal rows plus the player's neighborhood in one
-  `getPodiumScores` call. Host-only (dev shows the offline state). ADAPT:
+  `getPodiumScores` call. Real boards are host-only: in plain-browser dev
+  the SDK self-mocks after init, so `sdkReady()` is TRUE, fetches succeed
+  against an empty mock board, and the UI shows its EMPTY state (the
+  offline state only appears if SDK init itself fails). ADAPT:
   what score means, the config bounds, and the "m" display suffix.
 - **src/ui/** — screens: `MainMenu`, `Shop` (upgrades), `Settings`,
   `Leaderboard`, `Hud`
