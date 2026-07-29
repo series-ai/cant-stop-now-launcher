@@ -2,7 +2,7 @@
 
 Build your own 2D launcher game (fling far, bounce, upgrade, fling farther), fast. This template is a complete, playable launcher — drag-back slingshot aiming with a trajectory preview, flight physics with ground bounces, bounce-off objects that keep flights alive, hazards, tap-to-smash rocket dives that convert height into a big bounce, coins with a distance bonus, a four-track upgrade shop, rewarded ads, music and sound, settings, and persistence — all wired to the RUN.game platform (Pixi.js v8 + React 19 + Tailwind v4 + the RundotGameAPI SDK).
 
-Everything you see is a placeholder for YOUR game: the art and audio are generated procedurally at runtime (zero assets), so the template runs immediately, and every sprite and sound has a documented swap point for your own content. The `example-games/launcher` folder in this repo shows one finished game built from exactly this starting point.
+Everything you see is a placeholder for YOUR game: the art and audio are generated procedurally at runtime (zero assets), so the template runs immediately, and every sprite and sound has a documented swap point for your own content. The Can't Stop Now Jam Kit's `example-games/launcher` folder shows one finished game (One More Fling) built from exactly this starting point.
 
 ## What You Get
 
@@ -61,3 +61,7 @@ src/sdk/leaderboard.ts     // all-time board (submit + podium fetch)
 src/systems/, src/shared/  // copy-in platform systems (ads, trusted clock)
 src/ui/                    // menu, upgrade shop, settings, HUD, results
 ```
+
+## Where This Template Is Developed
+
+This template lives in the Can't Stop Now Jam Kit monorepo and is published to [series-ai/cant-stop-now-launcher](https://github.com/series-ai/cant-stop-now-launcher) as a standalone read-only mirror (one-way sync: changes land in the jam kit and get pushed here, so don't commit to or open PRs against the mirror).
