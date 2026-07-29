@@ -216,8 +216,9 @@ and the ADAPT header in `src/audio/audio.ts`.
 - `npm run build` (type-checks then bundles) passes; `npm run dev` boots
   to the menu with no console errors.
 - Play: drag shows arrow + power-colored preview dots; release launches;
-  bounces lose speed; jellies/slimes/balloons boost; spikes slam; boosts
-  consume pips; roll-out → results → RETRY restarts cleanly (no WebGL
+  bounces lose speed; jellies/slimes/balloons boost; spikes slam; a tap
+  smash-dives (even from a roll) and its landing bounces back big, spending
+  a pip; roll-out → results → RETRY restarts cleanly (no WebGL
   context warnings); upgrades visibly change the next fling; best, wallet,
   and volume sliders survive a reload; ad doubling works (fake ad in dev)
   and respects the daily cap.

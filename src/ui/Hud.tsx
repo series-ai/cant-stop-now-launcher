@@ -67,7 +67,7 @@ export default function Hud() {
             ) : (
                 fuel > 0 && (
                     <p className="absolute bottom-24 w-full text-center text-lg font-semibold text-white/50 drop-shadow">
-                        Tap to boost
+                        Tap to smash down
                     </p>
                 )
             )}

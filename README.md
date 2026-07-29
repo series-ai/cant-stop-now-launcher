@@ -1,6 +1,6 @@
 # Launcher Game Template for RUN.game
 
-Build your own 2D launcher game (fling far, bounce, upgrade, fling farther), fast. This template is a complete, playable launcher — drag-back slingshot aiming with a trajectory preview, flight physics with ground bounces, bounce-off objects that keep flights alive, hazards, rocket boosts, coins with a distance bonus, a four-track upgrade shop, rewarded ads, music and sound, settings, and persistence — all wired to the RUN.game platform (Pixi.js v8 + React 19 + Tailwind v4 + the RundotGameAPI SDK).
+Build your own 2D launcher game (fling far, bounce, upgrade, fling farther), fast. This template is a complete, playable launcher — drag-back slingshot aiming with a trajectory preview, flight physics with ground bounces, bounce-off objects that keep flights alive, hazards, tap-to-smash rocket dives that convert height into a big bounce, coins with a distance bonus, a four-track upgrade shop, rewarded ads, music and sound, settings, and persistence — all wired to the RUN.game platform (Pixi.js v8 + React 19 + Tailwind v4 + the RundotGameAPI SDK).
 
 Everything you see is a placeholder for YOUR game: the art and audio are generated procedurally at runtime (zero assets), so the template runs immediately, and every sprite and sound has a documented swap point for your own content. The `example-games/launcher` folder in this repo shows one finished game built from exactly this starting point.
 

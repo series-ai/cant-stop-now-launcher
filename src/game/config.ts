@@ -53,15 +53,23 @@ export const CONFIG = {
     },
 
     /**
-     * Tap-to-boost rocket. Mostly upward with a touch of forward push; the
-     * (boostVx, boostVy) vector's magnitude is the boost's overall power
-     * (~484 units/s), so retune direction and strength together.
+     * Tap-to-smash rocket. A boost is an immediate DOWNWARD velocity snap
+     * (a slam), not an upward push: vertical speed jumps straight to
+     * smashVy even mid-rise (a faster existing fall is kept). Use it to
+     * dive onto slimes and jellies and convert height into a bounce.
      */
     rocket: {
         /** Boosts per run = capacity + Rocket Fuel upgrade level. */
         capacity: 2,
-        boostVx: 90,
-        boostVy: 475,
+        /** Downward speed (units/s) the smash snaps to. */
+        smashVy: 1400,
+        /**
+         * Fraction of impact speed returned by the surface a smash lands on
+         * (ground or slime). Tuned so a smash from typical flight heights
+         * bounces back to about 65% of the height it dove from (return
+         * height = smashBounce^2 * (drop + smashVy^2 / (2 * gravity))).
+         */
+        smashBounce: 0.67,
     },
 
     /** Bouncy jelly response (the gummy-bear moment). */

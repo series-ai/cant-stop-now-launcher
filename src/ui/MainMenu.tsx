@@ -79,7 +79,7 @@ export default function MainMenu() {
             {/* ADAPT: your controls, short imperative lines (see CLAUDE.md UI Copy Style) */}
             <div className="w-full max-w-xs space-y-1.5 rounded-2xl bg-white/5 px-6 py-4 text-center text-lg text-white/60">
                 <p>Drag back and release to fling</p>
-                <p>Tap for a boost</p>
+                <p>Tap to smash down!</p>
                 <p>Bounce on things!</p>
             </div>
         </div>

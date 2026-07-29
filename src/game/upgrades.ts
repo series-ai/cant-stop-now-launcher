@@ -39,7 +39,7 @@ export const UPGRADES: UpgradeDef[] = [
     {
         track: 'fuel',
         name: 'Rocket Fuel',
-        description: 'One more mid-air boost per fling',
+        description: 'One more mid-air smash per fling',
         color: '#f87171',
     },
     {

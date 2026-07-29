@@ -187,18 +187,27 @@ export function createLauncherScene(app: Application, stage: Stage): Scene {
         }
     };
 
+    // True from a smash until the next contact converts the dive into a
+    // bounce (ground/slime) or something else sends the hero back up.
+    let smashing = false;
+
     const boost = () => {
-        if (state !== 'flying' || fuel <= 0) return;
+        // Available in flight AND while rolling: a ground-level smash pops
+        // the hero back into the air off its own smash bounce.
+        if ((state !== 'flying' && state !== 'rolling') || fuel <= 0) return;
+        if (state === 'rolling') state = 'flying';
         fuel--;
-        vx += CONFIG.rocket.boostVx;
-        vy -= CONFIG.rocket.boostVy;
+        smashing = true;
+        // Smash: snap straight to a big downward speed, no matter the
+        // current motion (keep a faster fall if already past it).
+        vy = Math.max(vy, CONFIG.rocket.smashVy);
         sfx.boost();
         store.patch({ fuel });
-        particles.burst(CONFIG.player.x - R, heroY + R * 0.4, {
+        particles.burst(CONFIG.player.x, heroY - R, {
             color: CONFIG.colors.boostFlame, count: 12, speed: 420, life: 0.4,
-            gravity: -200, size: 15, angle: Math.PI, spread: Math.PI / 3,
+            gravity: -200, size: 15, angle: -Math.PI / 2, spread: Math.PI / 3,
         });
-        haptic('light');
+        haptic('medium');
     };
 
     const haptic = (style: 'light' | 'medium' | 'error') => {
@@ -308,17 +317,21 @@ export function createLauncherScene(app: Application, stage: Stage): Scene {
             hero.rotation += (2 + vx * 0.004) * dt;
             // Ground contact → bounce or start rolling.
             if (heroY >= -R && vy > 0) {
-                const rest = effects.restitution(levels);
+                // Smash landings super-bounce; normal landings use the
+                // (upgradeable) restitution.
+                const rest = smashing ? CONFIG.rocket.smashBounce : effects.restitution(levels);
                 const bounceVy = -vy * rest;
                 heroY = -R;
                 vx *= P.bounceFriction;
                 squash = 0.6;
                 sfx.bounce(Math.min(1, vy / 2000));
                 particles.burst(CONFIG.player.x, 0, {
-                    color: CONFIG.colors.dust, count: 10, speed: 300, life: 0.4,
+                    color: CONFIG.colors.dust, count: smashing ? 20 : 10,
+                    speed: smashing ? 520 : 300, life: 0.4,
                     gravity: 1100, size: 16, angle: -Math.PI / 2, spread: Math.PI / 2,
                 });
-                haptic('light');
+                haptic(smashing ? 'medium' : 'light');
+                smashing = false;
                 if (Math.abs(bounceVy) < P.rollThreshold) {
                     state = 'rolling';
                     vy = 0;
@@ -337,9 +350,12 @@ export function createLauncherScene(app: Application, stage: Stage): Scene {
             vy > 0 || state === 'rolling'
         );
         if (hit.slime) {
-            // A little trampoline: some height, a tiny push, keeps a roll alive.
-            vy = -Math.max(CONFIG.slime.bounceVy, Math.abs(vy) * CONFIG.slime.vyCarry);
+            // A little trampoline: some height, a tiny push, keeps a roll
+            // alive. A smash arrival keeps smashBounce of its impact speed.
+            const carry = smashing ? CONFIG.rocket.smashBounce : CONFIG.slime.vyCarry;
+            vy = -Math.max(CONFIG.slime.bounceVy, Math.abs(vy) * carry);
             vx += CONFIG.slime.pushVx;
+            smashing = false;
             if (state === 'rolling') state = 'flying';
             squash = 1.25;
             sfx.slime();
@@ -348,6 +364,7 @@ export function createLauncherScene(app: Application, stage: Stage): Scene {
         if (hit.jelly) {
             vy = -effects.jellyPopVy(levels, vy);
             vx += effects.jellyPopVx(levels);
+            smashing = false;
             if (state === 'rolling') state = 'flying';
             squash = 1.35;
             sfx.jelly();
@@ -356,6 +373,7 @@ export function createLauncherScene(app: Application, stage: Stage): Scene {
         if (hit.balloon) {
             vy -= CONFIG.balloon.liftVy;
             vx += CONFIG.balloon.pushVx;
+            smashing = false;
             if (state === 'rolling') state = 'flying';
             sfx.balloon();
         }
