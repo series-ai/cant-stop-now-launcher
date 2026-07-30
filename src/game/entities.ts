@@ -8,11 +8,11 @@
  * object (or coin pattern) appears ahead at a random altitude. Spikes stay
  * out of the early meters (CONFIG.spawn.spikeMinMeters).
  */
-import { Container, Sprite, type Renderer } from 'pixi.js';
+import { Container, Sprite, type Renderer, type Texture } from 'pixi.js';
 import { CONFIG, type AirKind } from './config.ts';
 import {
     makeJellyTexture, makeBalloonTexture, makeSpikeTexture, makeCoinTextures,
-    makeSlimeTexture, freeTexture,
+    makeSlimeTexture, makeSlimeWalkTextures, freeTexture,
 } from './textures.ts';
 import type { ParticleSystem } from './particles.ts';
 
@@ -42,6 +42,10 @@ interface Slime {
     /** Spawned sprite scale (size variety) — wobble recomputes from this. */
     baseScale: number;
     age: number;
+    /** Walk-cycle frames when the slime sheets are loaded; null = tinted dome. */
+    frames: Texture[] | null;
+    /** Color for the pop particle burst (sheets aren't tintable). */
+    burstColor: number;
 }
 
 /** What the hero ran into this frame (scene applies the physics). */
@@ -79,6 +83,7 @@ export function createEntities(
     const spikeTex = makeSpikeTexture(renderer);
     const coinFrames = makeCoinTextures(renderer);
     const slimeTex = makeSlimeTexture(renderer);
+    const slimeWalks = makeSlimeWalkTextures();
 
     const objects: AirObject[] = [];
     const coins: Coin[] = [];
@@ -120,11 +125,25 @@ export function createEntities(
     };
 
     const spawnSlime = () => {
-        const sprite = new Sprite(slimeTex);
+        const variety = rand(0.85, 1.15); // small size variety
+        const tintIdx = Math.floor(Math.random() * CONFIG.slime.tints.length);
+        let sprite: Sprite;
+        let baseScale: number;
+        let frames: Texture[] | null = null;
+        if (slimeWalks) {
+            // Pre-tinted walk-cycle sheets: pick a variant, no runtime tint.
+            frames = slimeWalks[tintIdx % slimeWalks.length];
+            sprite = new Sprite(frames[0]);
+            // Frame box is 176px with the body ~150px wide; ~2.3 radii of box
+            // width puts the visible slime near the classic 80-unit footprint.
+            baseScale = ((CONFIG.slime.radius * 2.3) / 176) * variety;
+        } else {
+            sprite = new Sprite(slimeTex);
+            baseScale = 0.5 * variety;
+            sprite.tint = CONFIG.slime.tints[tintIdx];
+        }
         sprite.anchor.set(0.5, 1); // feet on the ground line
-        const baseScale = 0.5 * rand(0.85, 1.15); // small size variety
         sprite.scale.set(baseScale);
-        sprite.tint = CONFIG.slime.tints[Math.floor(Math.random() * CONFIG.slime.tints.length)];
         sprite.position.set(spawnX, 0);
         world.addChild(sprite);
         slimes.push({
@@ -132,6 +151,8 @@ export function createEntities(
             speed: rand(CONFIG.slime.speedMin, CONFIG.slime.speedMax),
             baseScale,
             age: Math.random() * Math.PI * 2,
+            frames,
+            burstColor: CONFIG.slime.tints[tintIdx],
         });
         distToNextSlime = rand(CONFIG.slime.minGap, CONFIG.slime.maxGap);
     };
@@ -162,11 +183,16 @@ export function createEntities(
                 // World scrolls left; the slime runs right at its own pace.
                 s.sprite.x += s.speed * dt - dx;
                 s.age += dt;
-                // Scampering wobble: quick squish cycle + tiny hops, always
-                // recomputed from the spawned base scale.
-                const squish = 1 + Math.sin(s.age * 11) * 0.1;
-                s.sprite.scale.set(s.baseScale * (2 - squish), s.baseScale * squish);
-                s.sprite.y = -Math.abs(Math.sin(s.age * 11)) * 6;
+                if (s.frames) {
+                    // Walk cycle from the sheet (random age offset desyncs them).
+                    s.sprite.texture = s.frames[Math.floor(s.age * 14) % s.frames.length];
+                } else {
+                    // Scampering wobble: quick squish cycle + tiny hops, always
+                    // recomputed from the spawned base scale.
+                    const squish = 1 + Math.sin(s.age * 11) * 0.1;
+                    s.sprite.scale.set(s.baseScale * (2 - squish), s.baseScale * squish);
+                    s.sprite.y = -Math.abs(Math.sin(s.age * 11)) * 6;
+                }
                 if (s.sprite.x < -160) {
                     s.sprite.destroy();
                     slimes.splice(i, 1);
@@ -225,7 +251,7 @@ export function createEntities(
                     if (dxs * dxs + dys * dys > reach * reach) continue;
                     events.slime = true;
                     particles.burst(cx, cy, {
-                        color: s.sprite.tint as number, count: 10,
+                        color: s.burstColor, count: 10,
                         speed: 320, life: 0.4, gravity: 800, size: 14,
                     });
                     s.sprite.destroy();

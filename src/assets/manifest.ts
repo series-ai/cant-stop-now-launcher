@@ -48,6 +48,15 @@ export const MANIFEST: Manifest = {
                 { alias: 'hero-sheet', src: 'resources/hero.png' },
                 { alias: 'pad', src: 'resources/bench_trim.png' },
                 { alias: 'jelly', src: 'resources/jelly.png' },
+                // Pre-tinted slime walk cycles, 11 frames each; textures.ts
+                // makeSlimeWalkTextures slices them (frame rects from
+                // resources/slime_walk.json, baked in).
+                { alias: 'slime-sheet-1', src: 'resources/slimetint1.png' },
+                { alias: 'slime-sheet-2', src: 'resources/slimetint2.png' },
+                { alias: 'slime-sheet-3', src: 'resources/slimetint3.png' },
+                { alias: 'slime-sheet-4', src: 'resources/slimetint4.png' },
+                { alias: 'slime-sheet-5', src: 'resources/slimetint5.png' },
+                { alias: 'slime-sheet-6', src: 'resources/slimetint6.png' },
                 { alias: 'balloon', src: 'resources/balloon.png' },
                 { alias: 'spike', src: 'resources/spikemine.png' },
                 { alias: 'cloud', src: 'resources/cloud2.png' },

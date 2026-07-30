@@ -210,6 +210,38 @@ export function makeHeroTextures(): Record<HeroEmote, Texture> | null {
 }
 
 /**
+ * Frame origins of the 11-frame slime walk cycle, in sheet pixels — copied
+ * from resources/slime_walk.json (reference only; Pixi force-parses any
+ * Assets-loaded .json with a 'frames' key as a spritesheet, so it never goes
+ * through the loader). Same layout on all six slimetintN.png sheets.
+ */
+const SLIME_WALK_FRAMES: [number, number][] = [
+    [0, 0], [256, 0], [512, 0], [768, 0],
+    [0, 256], [256, 256], [512, 256], [768, 256],
+    [0, 512], [256, 512], [512, 512],
+];
+
+/**
+ * Slice every loaded slime sheet ('slime-sheet-1'..'-6') into its walk-cycle
+ * frames. Each 256px cell is inset to a 176px box whose bottom edge sits on
+ * the slime's feet (measured content: x 40-216, feet at y 220), so a
+ * bottom-anchored sprite stays planted through the cycle. Returns null when
+ * no sheets are loaded — the spawner then falls back to the tinted dome.
+ */
+export function makeSlimeWalkTextures(): Texture[][] | null {
+    const variants: Texture[][] = [];
+    for (let i = 1; i <= 6; i++) {
+        if (!Assets.cache.has(`slime-sheet-${i}`)) continue;
+        const source = Assets.get<Texture>(`slime-sheet-${i}`).source;
+        variants.push(SLIME_WALK_FRAMES.map(([x, y]) => new Texture({
+            source,
+            frame: new Rectangle(x + 40, y + 44, 176, 176),
+        })));
+    }
+    return variants.length ? variants : null;
+}
+
+/**
  * Frame origins of the 10-frame coin spin, in sheet pixels — copied from
  * resources/coin.json (256px cells, coin01..coin10). Baked in because Pixi
  * force-parses any Assets-loaded .json with a 'frames' key as a spritesheet,
