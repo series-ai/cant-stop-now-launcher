@@ -42,7 +42,14 @@ export const MANIFEST: Manifest = {
                 // Pixi force-parses any loaded .json with a 'frames' key as a
                 // spritesheet, so the json must never go through Assets).
                 { alias: 'coin-sheet', src: 'resources/coin.png' },
+                // Hero emote faces (rest/happy/nervous/scream/4 hurts);
+                // textures.ts makeHeroTextures slices it (frame rects from
+                // resources/hero.json, baked in).
+                { alias: 'hero-sheet', src: 'resources/hero.png' },
                 { alias: 'pad', src: 'resources/bench_trim.png' },
+                { alias: 'jelly', src: 'resources/jelly.png' },
+                { alias: 'balloon', src: 'resources/balloon.png' },
+                { alias: 'spike', src: 'resources/spikemine.png' },
                 { alias: 'cloud', src: 'resources/cloud2.png' },
                 { alias: 'city', src: 'resources/city_bg2.png' },
                 // hills_tile2 is hills_bg2 with the tall flat skirt below the

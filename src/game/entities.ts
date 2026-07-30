@@ -21,6 +21,8 @@ interface AirObject {
     sprite: Sprite;
     baseY: number;
     radius: number;
+    /** Spawn scale (fits the art to the object's size); squish animates around it. */
+    baseScale: number;
     age: number;
     /** Set once consumed (jelly popped, balloon burst) — no double hits. */
     used: boolean;
@@ -106,11 +108,15 @@ export function createEntities(
         const radius = CONFIG[kind].radius;
         const sprite = new Sprite(tex);
         sprite.anchor.set(0.5);
-        // Textures are drawn at 2x; keep the natural aspect (balloons are tall).
-        sprite.scale.set(0.5);
+        // Fit art of any resolution, keeping the natural aspect (balloons are
+        // tall): width maps to the object's visual diameter — spike tips poke
+        // 1.4x past the body radius. Procedural 2x textures resolve to 0.5.
+        const displayW = kind === 'spike' ? radius * 2.8 : radius * 2;
+        const baseScale = displayW / tex.width;
+        sprite.scale.set(baseScale);
         sprite.position.set(x, y);
         world.addChild(sprite);
-        objects.push({ kind, sprite, baseY: y, radius, age: Math.random() * Math.PI * 2, used: false });
+        objects.push({ kind, sprite, baseY: y, radius, baseScale, age: Math.random() * Math.PI * 2, used: false });
     };
 
     const spawnSlime = () => {
@@ -172,9 +178,12 @@ export function createEntities(
                 o.sprite.x -= dx;
                 o.age += dt;
                 if (o.kind === 'jelly') {
-                    // idle squish
+                    // idle squish, relative to the spawn scale
                     const squish = 1 + Math.sin(o.age * 5) * 0.06;
-                    o.sprite.scale.set(0.5 * (2 - squish) * 0.5 + 0.25, 0.5 * squish);
+                    o.sprite.scale.set(
+                        o.baseScale * ((2 - squish) * 0.5 + 0.5),
+                        o.baseScale * squish,
+                    );
                 } else if (o.kind === 'balloon') {
                     o.sprite.y = o.baseY + Math.sin(o.age * 2.2) * 14;
                     o.sprite.rotation = Math.sin(o.age * 1.7) * 0.08;

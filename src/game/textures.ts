@@ -171,6 +171,44 @@ export function makePadTexture(renderer: Renderer): Texture {
     });
 }
 
+/** The hero's emote faces on the 'hero-sheet' image. */
+export type HeroEmote =
+    | 'rest' | 'happy' | 'nervous' | 'scream'
+    | 'hurt1' | 'hurt2' | 'hurt3' | 'hurt4';
+
+/**
+ * Emote frame rects on the 'hero-sheet' image, in sheet pixels — copied from
+ * resources/hero.json (reference only; Pixi force-parses any Assets-loaded
+ * .json with a 'frames' key as a spritesheet, so it never goes through the
+ * loader). hurt1 = bandaged, hurt2 = knocked out, hurt3 = dizzy,
+ * hurt4 = green around the gills.
+ */
+const HERO_EMOTE_FRAMES: Record<HeroEmote, [number, number, number, number]> = {
+    rest: [19, 26, 207, 211],
+    happy: [272, 23, 208, 213],
+    nervous: [531, 26, 207, 211],
+    hurt1: [784, 23, 208, 213],
+    scream: [20, 271, 209, 217],
+    hurt2: [269, 267, 210, 219],
+    hurt3: [532, 271, 209, 217],
+    hurt4: [781, 267, 210, 219],
+};
+
+/**
+ * Slice the hero emote sheet into one texture per face, or null when the
+ * sheet isn't in the manifest — the scene then keeps its single-texture hero.
+ */
+export function makeHeroTextures(): Record<HeroEmote, Texture> | null {
+    if (!Assets.cache.has('hero-sheet')) return null;
+    const source = Assets.get<Texture>('hero-sheet').source;
+    const out = {} as Record<HeroEmote, Texture>;
+    for (const key of Object.keys(HERO_EMOTE_FRAMES) as HeroEmote[]) {
+        const [x, y, w, h] = HERO_EMOTE_FRAMES[key];
+        out[key] = new Texture({ source, frame: new Rectangle(x, y, w, h) });
+    }
+    return out;
+}
+
 /**
  * Frame origins of the 10-frame coin spin, in sheet pixels — copied from
  * resources/coin.json (256px cells, coin01..coin10). Baked in because Pixi

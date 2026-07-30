@@ -25,7 +25,7 @@ import { effects } from './upgrades.ts';
 import { createBackground } from './background.ts';
 import { createParticleSystem } from './particles.ts';
 import { createEntities } from './entities.ts';
-import { makePlayerTexture, makePadTexture, freeTexture } from './textures.ts';
+import { makePlayerTexture, makePadTexture, makeHeroTextures, freeTexture, type HeroEmote } from './textures.ts';
 import { sfx } from '../audio/audio.ts';
 
 /** The scene contract: every createXxxScene(app, stage) returns one of these. */
@@ -41,6 +41,9 @@ export function createLauncherScene(app: Application, stage: Stage): Scene {
     const background = createBackground(app.renderer, stage);
 
     const world = new Container();
+    // Sort by zIndex so the hero (1) and aim overlay (2) always draw in
+    // front of flight objects, which spawn later but stay at zIndex 0.
+    world.sortableChildren = true;
     world.y = background.groundTopY();
     stage.root.addChild(world);
     const offResize = stage.onResize(() => { world.y = background.groundTopY() + camY; });
@@ -60,14 +63,19 @@ export function createLauncherScene(app: Application, stage: Stage): Scene {
     pad.position.set(CONFIG.player.x, 0);
     world.addChild(pad);
 
-    const playerTex = makePlayerTexture(app.renderer);
+    // Emote faces from the hero sheet; without the sheet the hero keeps a
+    // single texture and the emote calls below become no-ops.
+    const heroFrames = makeHeroTextures();
+    const playerTex = heroFrames ? heroFrames.rest : makePlayerTexture(app.renderer);
     const hero = new Sprite(playerTex);
     hero.anchor.set(0.5);
     hero.width = R * 2;
     hero.height = R * 2;
+    hero.zIndex = 1;
     world.addChild(hero);
 
     const aimG = new Graphics();
+    aimG.zIndex = 2;
     world.addChild(aimG);
 
     // --- Run state ---------------------------------------------------------
@@ -88,6 +96,47 @@ export function createLauncherScene(app: Application, stage: Stage): Scene {
 
     hero.position.set(CONFIG.player.x, heroY);
     store.patch({ fuel, fuelMax: fuel });
+
+    // --- Emotes --------------------------------------------------------------
+    // Event emotes (launch scream, jelly grin, spike KO...) hold for a beat;
+    // when the hold runs out the per-tick mood (aiming / rising / falling /
+    // rolling) takes back over. `hurtCount` makes repeat crashes look worse.
+    let emoteHold = 0;
+    let hurtCount = 0;
+    let currentEmote: HeroEmote = 'rest';
+    /** Min seconds a face stays up before another may replace it — stops a
+     *  pile of same-frame contacts from strobing through every emotion. */
+    const EMOTE_MIN_SHOW = 0.3;
+    let emoteLock = 0;
+    const setEmote = (name: HeroEmote, hold = 0) => {
+        if (!heroFrames) return;
+        if (name === currentEmote) { emoteHold = Math.max(emoteHold, hold); return; }
+        if (emoteLock > 0) return; // still showing the last face; drop this one
+        currentEmote = name;
+        emoteHold = hold;
+        emoteLock = EMOTE_MIN_SHOW;
+        hero.texture = heroFrames[name];
+    };
+    /** Seconds since the run ended; the hero settles back to rest after a beat. */
+    let doneTimer = 0;
+    /** The mood the hero falls back to between event emotes. */
+    const moodEmote = (): HeroEmote => {
+        if (state === 'done') return currentEmote; // endRun set the final face
+        if (state === 'aiming') {
+            if (aim) return aim.power01 > 0.85 ? 'scream' : 'nervous';
+            return 'rest';
+        }
+        if (state === 'rolling') return hurtCount > 0 ? 'hurt3' : 'happy';
+        // flying: grin on the way up, grit on the way down, scream when diving
+        if (vy < -150) return 'happy';
+        if (vy > 900) return 'scream';
+        return 'nervous';
+    };
+    const updateEmote = (dt: number) => {
+        emoteLock = Math.max(0, emoteLock - dt);
+        emoteHold = Math.max(0, emoteHold - dt);
+        if (emoteHold <= 0) setEmote(moodEmote());
+    };
 
     // --- Aiming ------------------------------------------------------------
     let dragging = false;
@@ -175,6 +224,7 @@ export function createLauncherScene(app: Application, stage: Stage): Scene {
         aim = null;
         aimG.clear();
         squash = 1.25;
+        setEmote('scream', 0.6);
         sfx.launch();
         store.patch({ flight: 'flying' });
         particles.burst(CONFIG.player.x, heroY + R, {
@@ -201,6 +251,7 @@ export function createLauncherScene(app: Application, stage: Stage): Scene {
         // Smash: snap straight to a big downward speed, no matter the
         // current motion (keep a faster fall if already past it).
         vy = Math.max(vy, CONFIG.rocket.smashVy);
+        setEmote('happy', 0.8);
         sfx.boost();
         store.patch({ fuel });
         particles.burst(CONFIG.player.x, heroY - R, {
@@ -258,6 +309,10 @@ export function createLauncherScene(app: Application, stage: Stage): Scene {
         if (ended) return;
         ended = true;
         state = 'done';
+        // Rolled to a stop: knocked out or dizzy, either way he's done.
+        // Bypass the min-show lock: this is the last face of the run.
+        emoteLock = 0;
+        setEmote(Math.random() < 0.5 ? 'hurt2' : 'hurt3');
         const meters = Math.floor(worldX / CONFIG.score.unitsPerMeter);
         const result = recordRun(meters, coins);
         store.patch({
@@ -294,9 +349,19 @@ export function createLauncherScene(app: Application, stage: Stage): Scene {
             // Idle bob on the pad.
             elapsed += dt;
             hero.position.set(CONFIG.player.x, heroY + Math.sin(elapsed * 3) * 4);
+            updateEmote(dt);
             return;
         }
-        if (state === 'done') return;
+        if (state === 'done') {
+            // Show the final knocked-out/dizzy face for a beat, then settle
+            // back to rest on the results screen.
+            doneTimer += dt;
+            if (doneTimer > 1.2) {
+                emoteLock = 0;
+                setEmote('rest');
+            }
+            return;
+        }
 
         elapsed += dt;
 
@@ -331,6 +396,9 @@ export function createLauncherScene(app: Application, stage: Stage): Scene {
                     gravity: 1100, size: 16, angle: -Math.PI / 2, spread: Math.PI / 2,
                 });
                 haptic(smashing ? 'medium' : 'light');
+                // Every ground hit stings: flash a random hurt face.
+                const HURTS: HeroEmote[] = ['hurt1', 'hurt2', 'hurt3', 'hurt4'];
+                setEmote(HURTS[Math.floor(Math.random() * HURTS.length)], 0.5);
                 smashing = false;
                 if (Math.abs(bounceVy) < P.rollThreshold) {
                     state = 'rolling';
@@ -358,6 +426,7 @@ export function createLauncherScene(app: Application, stage: Stage): Scene {
             smashing = false;
             if (state === 'rolling') state = 'flying';
             squash = 1.25;
+            setEmote('happy', 0.6);
             sfx.slime();
             haptic('light');
         }
@@ -367,6 +436,7 @@ export function createLauncherScene(app: Application, stage: Stage): Scene {
             smashing = false;
             if (state === 'rolling') state = 'flying';
             squash = 1.35;
+            setEmote('happy', 0.7);
             sfx.jelly();
             haptic('medium');
         }
@@ -375,12 +445,16 @@ export function createLauncherScene(app: Application, stage: Stage): Scene {
             vx += CONFIG.balloon.pushVx;
             smashing = false;
             if (state === 'rolling') state = 'flying';
+            setEmote('happy', 0.5);
             sfx.balloon();
         }
         if (hit.spike) {
             vx *= CONFIG.spike.vxMultiplier;
             vy = Math.max(vy, CONFIG.spike.knockdownVy);
             hitFlash = 0.25;
+            hurtCount++;
+            // Knocked out cold; repeat hits leave him green around the gills.
+            setEmote(hurtCount >= 3 ? 'hurt4' : 'hurt2', 1.0);
             sfx.spike();
             haptic('error');
         }
@@ -410,6 +484,7 @@ export function createLauncherScene(app: Application, stage: Stage): Scene {
         hitFlash = Math.max(0, hitFlash - dt);
         hero.tint = hitFlash > 0 ? 0xff8080 : 0xffffff;
         hero.position.set(CONFIG.player.x, heroY);
+        updateEmote(dt);
 
         // Discrete store patches only: meter ticks (coins patched on pickup).
         if (meters !== shownMeters) {

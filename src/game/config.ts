@@ -177,7 +177,9 @@ export const CONFIG = {
 
     /** Ground strip anchored to the bottom of the screen. */
     ground: {
-        height: 150,
+        // Matches the endless runner's 170 so the shared ground/hills/city
+        // art renders at the same scale and horizon height in both games.
+        height: 170,
     },
 
     /**
