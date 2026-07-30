@@ -11,7 +11,7 @@
 import { Container, Sprite, type Renderer } from 'pixi.js';
 import { CONFIG, type AirKind } from './config.ts';
 import {
-    makeJellyTexture, makeBalloonTexture, makeSpikeTexture, makeCoinTexture,
+    makeJellyTexture, makeBalloonTexture, makeSpikeTexture, makeCoinTextures,
     makeSlimeTexture, freeTexture,
 } from './textures.ts';
 import type { ParticleSystem } from './particles.ts';
@@ -75,7 +75,7 @@ export function createEntities(
     const jellyTex = makeJellyTexture(renderer);
     const balloonTex = makeBalloonTexture(renderer);
     const spikeTex = makeSpikeTexture(renderer);
-    const coinTex = makeCoinTexture(renderer);
+    const coinFrames = makeCoinTextures(renderer);
     const slimeTex = makeSlimeTexture(renderer);
 
     const objects: AirObject[] = [];
@@ -90,7 +90,7 @@ export function createEntities(
         const arc = Math.random() < 0.5;
         for (let i = 0; i < count; i++) {
             const t = count > 1 ? i / (count - 1) - 0.5 : 0;
-            const s = new Sprite(coinTex);
+            const s = new Sprite(coinFrames[0]);
             s.anchor.set(0.5);
             s.width = CONFIG.coins.size;
             s.height = CONFIG.coins.size;
@@ -191,7 +191,12 @@ export function createEntities(
                 c.sprite.x -= dx;
                 c.age += dt;
                 c.sprite.y = c.baseY + Math.sin(c.age * 4) * 8;
-                c.sprite.scale.x = Math.abs(Math.cos(c.age * 3)) * c.sprite.scale.y;
+                if (coinFrames.length > 1) {
+                    // spritesheet spin (random age offset desyncs the coins)
+                    c.sprite.texture = coinFrames[Math.floor(c.age * 12) % coinFrames.length];
+                } else {
+                    c.sprite.scale.x = Math.abs(Math.cos(c.age * 3)) * c.sprite.scale.y; // fake spin
+                }
                 if (c.sprite.x < -100) {
                     c.sprite.destroy();
                     coins.splice(i, 1);
@@ -262,7 +267,7 @@ export function createEntities(
             freeTexture(jellyTex);
             freeTexture(balloonTex);
             freeTexture(spikeTex);
-            freeTexture(coinTex);
+            for (const t of coinFrames) freeTexture(t);
             freeTexture(slimeTex);
         },
     };
