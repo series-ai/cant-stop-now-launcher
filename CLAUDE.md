@@ -59,6 +59,10 @@ Systems (keep, tune, or delete whole):
   (pointer-events-none overlay, BOOSTS pips, contextual hints, quit
   confirmation that freezes the game), `GameOver` (payout receipt; canvas
   stays mounted underneath).
+- **game.config.prod.json** — Ships pre-baked with `kitId: "cant-stop-now-launcher"` so
+  `rundot init` can attribute the game to this kit for the jam leaderboard;
+  do not remove or blank out `kitId`. `rundot init` fills in the rest
+  (`gameId`, `keywords`) in place.
 
 Example content (REPLACE with your game's):
 
